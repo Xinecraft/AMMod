@@ -1,0 +1,1 @@
+class AMNoOverride extends Engine.HandheldEquipment;
