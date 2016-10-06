@@ -76,9 +76,8 @@ var AMWebAdminListener	WebAdmin;
 var float deleteme;
 
 //KMS
+var KZLink KZLink;
 var KZMod KZMod;
-var KZBotHandler KZBotHandler;
-var float TotalCheckBotsDelta;
 //KME
 
 struct LoadoutChanger
@@ -153,14 +152,16 @@ function BeginPlay()
 	iLink.AGM = self;
 	iLink.Initialise( 2 );
 
+    KZLink = Spawn(class'KZLink');
+    KZLink.AGM = self;
+
 	//UAC = Spawn( class'AMUAC' );
 	//UAC.AGM = self;
 
 	KZMod = Spawn(class'KZMod');
     KZMod.AGM = self;
+
     KZMod.SetTimer(4.0, false);
-    KZBotHandler = Spawn(class'KZBotHandler');
-    KZBotHandler.AGM = self;
 
 	ServerQuery = Spawn( class'AMServerQuery' );
 	ServerQuery.AGM = self;
@@ -256,161 +257,9 @@ function Tick( float Delta )
 	CheckServerName();
 	CheckMaps();
 	CheckGameType();
-
-	TotalCheckBotsDelta = TotalCheckBotsDelta + Delta;
-
-    if(TotalCheckBotsDelta > 0.050)
-    {
-        KZBotHandler.CheckBots(Delta);
-    }
 }
 
-function SpawnBot()
-{
-    local AMPlayerController SPC;
-    local PlayerController NewPlayer;
-    local int NewSwatPlayerID, i, X, Team, Swat, sus;
 
-    local SwatRepoPlayerItem theSwatRepoPlayerItem;
-    local class<PlayerController> PlayerControllerClass;
-    local array<LoadoutChanger> newLoadOut;
-    local LoadoutChanger LoadOut;
-    local DynamicLoadOutSpec LoadOutSpec;
-    local string BotNames[10];
-
-    // End:0x1F
-    for (i = 0; i < PlayerList.Length ; i++)
-    {
-    	// End:0x95
-        if(((PlayerList[i] == none) || PlayerList[i].PC == none) || PlayerList[i].PC.PlayerReplicationInfo.PlayerName == "")
-        {
-            continue;
-        }
-        // End:0xB4
-        if(PlayerList[i].isBot)
-        {
-            ++ X;
-        }
-    }
-
-    for (i = 0; i < PlayerList.Length ; i++)
-    {
-    	SPC = PlayerList[i];
-        // End:0x137
-        if(((SPC == none) || SPC.PC == none) || NetTeam(SPC.PC.PlayerReplicationInfo.Team) == none)
-        {
-            continue;
-        }
-        // End:0x176
-        if(NetTeam(SPC.PC.PlayerReplicationInfo.Team).GetTeamNumber() == 0)
-        {
-            ++ Swat;
-            continue;
-        }
-        // End:0x1B2
-        if(NetTeam(SPC.PC.PlayerReplicationInfo.Team).GetTeamNumber() == 1)
-        {
-            ++ sus;
-        }
-    }
-    // End:0x1D5
-    if(Swat < sus)
-    {
-        Team = 0;
-    }
-    // End:0x1DC
-    else
-    {
-        Team = 1;
-    }
-
-    NewSwatPlayerID = SwatRepo(Level.GetRepo()).GetNewSwatPlayerID();
-    theSwatRepoPlayerItem = SwatRepo(Level.GetRepo()).GetRepoPlayerItem(NewSwatPlayerID);
-    theSwatRepoPlayerItem.SetTeamID(Team);
-    theSwatRepoPlayerItem.bConnected = true;
-    theSwatRepoPlayerItem.bIsReadyToSpawn = true;
-    PlayerControllerClass = class<PlayerController>(DynamicLoadObject("SwatGame.SwatGamePlayerController", class'Class'));
-    NewPlayer = Spawn(PlayerControllerClass,,, vect(0.0, 0.0, 0.0), rot(0, 0, 0));
-    SwatGamePlayerController(NewPlayer).SwatPlayerID = NewSwatPlayerID;
-    SwatGamePlayerController(NewPlayer).SwatRepoPlayerItem = theSwatRepoPlayerItem;
-    NewPlayer.GameReplicationInfo = SwatGameInfo(Level.Game).GameReplicationInfo;
-    BotNames[0] = KZMod.BotNameA;
-    BotNames[1] = KZMod.BotNameB;
-    BotNames[2] = KZMod.BotNameC;
-    BotNames[3] = KZMod.BotNameD;
-    BotNames[4] = KZMod.BotNameE;
-    BotNames[5] = KZMod.BotNameF;
-    BotNames[6] = KZMod.BotNameG;
-    BotNames[7] = KZMod.BotNameH;
-    BotNames[8] = KZMod.BotNameI;
-    BotNames[9] = KZMod.BotNameJ;
-    SwatGamePlayerController(NewPlayer).SetName(BotNames[X] $ "(K_BOT)");
-    NewPlayer.PlayerReplicationInfo.PlayerID = ++ SwatGameInfo(Level.Game).CurrentID;
-    SwatPlayerReplicationInfo(NewPlayer.PlayerReplicationInfo).SwatPlayerID = NewSwatPlayerID;
-    NewPlayer.SetPawnClass("SwatGame.SwatPlayer", "");
-    SwatGameInfo(Level.Game).SetPlayerTeam(SwatGamePlayerController(NewPlayer), Team);
-    SwatGameInfo(Level.Game).PlayerLoggedIn(NewPlayer);
-    // End:0x51C
-    if(X == 1)
-    {
-        LoadOutSpec = Spawn(class'DynamicLoadOutSpec', none, 'BotALoadout');
-    }
-    // End:0x599
-    else if (X == 2)
-    {
-    	LoadOutSpec = Spawn(class'DynamicLoadOutSpec', none, 'BotBLoadout');
-    }
-    else if(X == 3)
-    {
-        LoadOutSpec = Spawn(class'DynamicLoadOutSpec', none, 'BotCLoadout');
-    }
-    else if (X == 4)
-    {
-    	LoadOutSpec = Spawn(class'DynamicLoadOutSpec', none, 'BotDLoadout');
-    }
-    else
-    {
-    	LoadOutSpec = Spawn(class'DynamicLoadOutSpec', none, 'BotALoadout');
-    }
-    for (i = 0; i < Pocket.EnumCount ; i++)
-    {
-    	Loadout.Pocket = Pocket(i);
-        Loadout.NewClass = LoadOutSpec.LoadOutSpec[ Pocket(i) ];
-        newLoadout[newLoadout.Length] = Loadout;
-    }
-
-    SwatGameInfo(Level.Game).SetPlayerReady(SwatGamePlayerController(NewPlayer));
-    ChangePlayer(NewPlayer, newLoadOut);
-    AddToPlayerList(NewPlayer, true);
-    SwatRepo(Level.GetRepo()).FlushBogusPlayerItems();
-}
-
-function DestroyBot(AMPlayerController Bot)
-{
-    // End:0x0D
-    if(Bot == none)
-    {
-        return;
-    }
-    // End:0x23
-    if(Bot.PC == none)
-    {
-        return;
-    }
-    // End:0x39
-    if(!Bot.isBot)
-    {
-        return;
-    }
-    SwatGamePlayerController(Bot.PC).SwatRepoPlayerItem.bIsAReconnectingClient = false;
-    SwatGamePlayerController(Bot.PC).SwatRepoPlayerItem.bConnected = false;
-    SwatRepo(Level.GetRepo()).FlushBogusPlayerItems();
-    SwatRepo(Level.GetRepo()).Logout(SwatGamePlayerController(Bot.PC));
-    SwatGameInfo(Level.Game).Logout(Bot.PC);
-    SwatGamePlayerController(Bot.PC).SwatRepoPlayerItem = none;
-    SwatGamePlayerController(Bot.PC).Destroy();
-    Bot.PC.Destroy();
-}
 
 function CheckSettingsUpdated()
 {
@@ -605,18 +454,8 @@ function CheckGameType()
 
 function RestoreGameType(EMPMode NewGameType)
 {
-	 local int i;
 	 SwatRepo(Level.GetRepo()).PreLevelChangeCleanup();
     SwatRepo(Level.GetRepo()).UpdateGameSpyStats();
-
-    for (i = 0; i < PlayerList.Length ; i++)
-    {
-    	if(PlayerList[i] == none)
-        {
-            continue;
-        }
-        DestroyBot(PlayerList[i]);
-    }
 
 	ServerSettings(Level.PendingServerSettings).GameType = NewGameType;
 	ServerSettings(Level.PendingServerSettings).RoundNumber = 0;
@@ -1078,8 +917,8 @@ function CheckPlayers()
 	local Controller C;
 	local int i, numPlayingClients;
 	local bool exists;
-	local AMPlayerController bestSPC, SPC, LastConnectedBot;
-	local int NumPlayers, NumBots;
+	local AMPlayerController bestSPC, SPC;
+	local int NumPlayers;
 	NumPlayers = 0;
 
 	if ( SwatRepo(Level.GetRepo()).GuiConfig.SwatGameState >= GAMESTATE_PreGame && SwatRepo(Level.GetRepo()).GuiConfig.SwatGameState <= GAMESTATE_PostGame )
@@ -1140,13 +979,8 @@ function CheckPlayers()
 		if ( SPC == None )
 			continue;
 
-		if ( SPC.PC == None || SwatGamePlayerController(SPC.PC) == None || SwatGamePlayerController(SPC.PC).SwatRepoPlayerItem == None || (NetConnection(SPC.PC.Player) == None && SPC.PC != Level.GetLocalPlayerController()) && !SPC.isBot )
+		if ( SPC.PC == None || SwatGamePlayerController(SPC.PC) == None || SwatGamePlayerController(SPC.PC).SwatRepoPlayerItem == None || (NetConnection(SPC.PC.Player) == None && SPC.PC != Level.GetLocalPlayerController()) )
 		{
-			if(((SPC.Name != "") && SPC.networkAddress != "") && SPC.isBot)
-            {
-                Admin.ShowAdminMsg(Lang.FormatLangString(Lang.DisconnectedString, SPC.Name, "Server Bot"), none, true);
-            }
-
 			if ( SPC.Name != "" && SPC.networkAddress != "" )
 			{
 				Admin.ShowAdminMsg( Lang.FormatLangString( Lang.DisconnectedString, SPC.Name, SPC.networkAddress ), None, true );
@@ -1164,31 +998,8 @@ function CheckPlayers()
             continue;
         }
 
-        if(SPC.isBot)
-        {
-            if(!wasEnded && hasEnded)
-            {
-                SwatGameInfo(Level.Game).SetPlayerReady(SwatGamePlayerController(SPC.PC));
-            }
-            // End:0x8D2
-            if(((PlayerList[i] == none) || PlayerList[i].PC == none) || PlayerList[i].PC.PlayerReplicationInfo.PlayerName == "")
-            {
-                continue;
-            }
-            ++ NumBots;
-            // End:0x8FB
-            if(CheckKickOrBan(SPC))
-            {
-                SPC.kicked = true;
-                continue;
-            }
-            LastConnectedBot = SPC;
-        }
-        // End:0x910
-        else
-        {
-            ++ NumPlayers;
-        }
+
+        ++ NumPlayers;
 
 
 		if ( SwatRepo(Level.GetRepo()).GuiConfig.SwatGameState < GAMESTATE_PreGame || SwatRepo(Level.GetRepo()).GuiConfig.SwatGameState > GAMESTATE_PostGame )
@@ -1250,33 +1061,7 @@ function CheckPlayers()
 		numPlayingClients--;
 	}
 
-	Level.Game.NumPlayers = NumPlayers + NumBots;
-	if(((ServerSettings(Level.CurrentServerSettings).RoundNumber + 1) == ServerSettings(Level.CurrentServerSettings).NumRounds) && SwatRepo(Level.GetRepo()).GuiConfig.SwatGameState > GAMESTATE_MidGame)
-    {
-        DestroyBot(LastConnectedBot);
-    }
-    else
-    {
-        // End:0xE2F
-        if((KZMod.FillServerWithBots && Level.Game.NumPlayers < KZMod.NumberOfFixedPlayers) && Level.Game.NumPlayers <= 10)
-        {
-            // End:0xE2C
-            if(SwatRepo(Level.GetRepo()).GuiConfig.SwatGameState == GAMESTATE_MidGame)
-            {
-                SpawnBot();
-            }
-        }
-        // End:0xE78
-        else
-        {
-            // End:0xE78
-            if(KZMod.FillServerWithBots && Level.Game.NumPlayers > KZMod.NumberOfFixedPlayers)
-            {
-                DestroyBot(LastConnectedBot);
-            }
-        }
-    }
-    return;
+	Level.Game.NumPlayers = NumPlayers;
 }
 
 function CheckEffects( AMPlayerController APC )
@@ -1915,7 +1700,12 @@ function bool CheckKickOrBan( AMPlayerController SPC )
 				Log("AMMod.AMGameMod: Adding IP Ban for: "$IP);
 				Msg = Lang.FormatLangString( Lang.AddBanString, SPC.banner, IP );
 				AccessControl.IPPolicies[AccessControl.IPPolicies.Length] = "DENY,"$IP$","$SPC.PC.PlayerReplicationInfo.PlayerName$","$SPC.bannersIP$","$SPC.banComment;
-				AccessControl.SaveConfig( "", "", false, true );
+
+                //Send the ban data to KoS Website.
+                //ban IP_address Name admin admin_ip
+                KZMod.SendStats("ban $ "$IP$" $ "$SPC.PC.PlayerReplicationInfo.PlayerName$" $ "$SPC.banner$" $ "$SPC.bannersIP$" $ "$SPC.banComment);
+
+                AccessControl.SaveConfig( "", "", false, true );
 				if ( FlushVariables )
 					AccessControl.FlushConfig();
 			}
@@ -2233,7 +2023,7 @@ if ( SPC.specMode == 1 )
 	}
 }
 
-function AddToPlayerList( PlayerController PC , optional bool bIsABot)
+function AddToPlayerList( PlayerController PC )
 {
 	local int i, space, n;
 	local string wishName;
@@ -2285,10 +2075,6 @@ function AddToPlayerList( PlayerController PC , optional bool bIsABot)
 	PlayerList[space].specMode = 1;
 	PlayerList[space].networkAddress = PC.GetPlayerNetworkAddress();
 	PlayerList[space].joinTime = Level.TimeSeconds;
-	if(bIsABot)
-    {
-        PlayerList[Space].isBot = true;
-    }
 
 	// Strip Port
 	i = InStr( PlayerList[space].networkAddress, ":" );
@@ -2336,21 +2122,6 @@ function AddToPlayerList( PlayerController PC , optional bool bIsABot)
 			return;
 		}
 	}
-
-	if(PlayerList[Space].isBot)
-    {
-        // End:0x70D
-        if(((ServerSettings(Level.CurrentServerSettings).RoundNumber == 0) && SwatRepo(Level.GetRepo()).GuiConfig.SwatGameState < GAMESTATE_MidGame) && SwatGamePlayerController(PlayerList[Space].PC).IsAReconnectingClient())
-        {
-        }
-
-        else
-        {
-            Admin.ShowAdminMsg(Lang.FormatLangString(Lang.ConnectedString, PlayerList[space].Name, "Server Bot"), none, true);
-        }
-    }
-    else
-    {
         // End:0x7DE
         if(((ServerSettings(Level.CurrentServerSettings).RoundNumber == 0) && SwatRepo(Level.GetRepo()).GuiConfig.SwatGameState < GAMESTATE_MidGame) && SwatGamePlayerController(PlayerList[Space].PC).IsAReconnectingClient())
         {
@@ -2360,7 +2131,6 @@ function AddToPlayerList( PlayerController PC , optional bool bIsABot)
         {
         	Admin.ShowAdminMsg( Lang.FormatLangString( Lang.ConnectedString, PlayerList[space].Name, PlayerList[space].networkAddress ), None, true );
         }
-    }
 }
 
 function PlayerController FindNextOtherPlayerOnTeam( PlayerController PC )

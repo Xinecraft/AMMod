@@ -23,7 +23,7 @@ function BeginPlay()
 	CleanUpTempIPPolicies();
 }
 
-function bool Kick( string S ) 
+function bool Kick( string S )
 {
 	local PlayerController P;
 	local PlayerController PC;
@@ -57,7 +57,7 @@ function bool Kick( string S )
 	return false;
 }
 
-function bool KickBan( string S ) 
+function bool KickBan( string S )
 {
 #if SWAT_EXPANSION
 	local PlayerController P;
@@ -109,7 +109,7 @@ function bool CheckIPPolicy(string Address)
 	local int i, j, k, LastMatchingPolicy;
 	local string Policy, Mask;
 	local bool bAcceptAddress, bAcceptPolicy;
-	
+
 	// strip port number
 	j = InStr(Address, ":");
 	if(j != -1)
@@ -129,10 +129,10 @@ function bool CheckIPPolicy(string Address)
 		if(k!=-1)
 			Mask = Left(Mask, k);
 
-		if(Policy ~= "ACCEPT") 
+		if(Policy ~= "ACCEPT")
 			bAcceptPolicy = True;
 		else
-		if(Policy ~= "DENY") 
+		if(Policy ~= "DENY")
 			bAcceptPolicy = False;
 		else
 			continue;
@@ -158,8 +158,43 @@ function bool CheckIPPolicy(string Address)
 
 	if(!bAcceptAddress)
 		Log("AMMod.AMAccessControl: Denied connection for "$Address$" with IP policy "$IPPolicies[LastMatchingPolicy]);
-		
+
 	return bAcceptAddress;
+}
+
+function CleanUpMasterIPPolicies()
+{
+	local int i, j;
+	local string BanBy;
+	local bool save;
+
+	for( i = IPPolicies.Length-1; i >= 0; i-- )
+	{
+		j = InStr(IPPolicies[i], ",");
+		if( j == -1 )
+			continue;
+
+		BanBy = Mid(IPPolicies[i], j+1);
+
+		j = InStr(BanBy, ",");
+		if( j == -1 )
+			continue;
+
+		BanBy = Mid(BanBy, j+1);
+
+		if (BanBy ~= "~MasterBanList")
+		{
+			save = true;
+			IPPolicies.Remove( i, 1 );
+		}
+	}
+
+	if ( save )
+	{
+		SaveConfig( "", "", false, true );
+		if ( AGM.FlushVariables )
+			FlushConfig();
+	}
 }
 
 function CleanUpTempIPPolicies()
@@ -202,7 +237,7 @@ function bool CheckTempIPPolicy(string Address)
 	local int i, j, LastMatchingPolicy;
 	local string Policy, Mask, Expiry;
 	local bool bAcceptAddress, bAcceptPolicy;
-	
+
 	// strip port number
 	j = InStr(Address, ":");
 	if(j != -1)
@@ -228,9 +263,9 @@ function bool CheckTempIPPolicy(string Address)
 		if ( HasPolicyExpired( Expiry ) )
 			continue;
 
-		if(Policy ~= "ACCEPT") 
+		if(Policy ~= "ACCEPT")
 			bAcceptPolicy = true;
-		else if(Policy ~= "DENY") 
+		else if(Policy ~= "DENY")
 			bAcceptPolicy = false;
 		else
 			continue;
@@ -256,7 +291,7 @@ function bool CheckTempIPPolicy(string Address)
 
 	if(!bAcceptAddress)
 		Log("AMMod.AMAccessControl: Denied connection for "$Address$" with Temp IP policy "$TempIPPolicies[LastMatchingPolicy]);
-		
+
 	return bAcceptAddress;
 }
 
@@ -378,16 +413,16 @@ event PreLogin
 #if IG_SWAT //dkaplan: dont test at capacity if this is a reconnecting player
     InSwatPlayerID = Level.Game.GetIntOption( Options, "SwatPlayerID", 0 ); // zero means we are
                                                                  // a new connector.
-#endif    
+#endif
 
 	superadmin = AGM.Admin.CheckPassword( InPassword, AGM.Admin.SuperAdminPassword );
 	admin = AGM.Admin.CheckPassword( InPassword, AGM.Admin.AdminPassword );
 	subadmin = AGM.Admin.CheckPassword( caps(InPassword), caps(MaxJoinPassword) );
 	reserved = superadmin || admin || subadmin;
 
-	if( (Level.NetMode != NM_Standalone) && 
+	if( (Level.NetMode != NM_Standalone) &&
 #if IG_SWAT //dkaplan: dont test at capacity if this is a reconnecting player
-	    InSwatPlayerID == 0 && 
+	    InSwatPlayerID == 0 &&
 #endif
 	    AtCapacity( reserved ) )
 	{

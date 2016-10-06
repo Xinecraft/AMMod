@@ -216,12 +216,18 @@ var		globalconfig string		WAGetTempBansString;
 var		globalconfig string		WAMuteString;
 var		globalconfig string		MaxPlayingClientsString;
 
+var		globalconfig string     CampWarningString;
+var 	globalconfig string     KillCampString;
+var     globalconfig string     CampKickString;
+var		globalconfig string 	TaserOnlyOnString;
+var		globalconfig string 	TaserOnlyOffString;
+
 function String FormatLangString( string Format, optional coerce string Param1, optional coerce string Param2, optional coerce string Param3 )
 {
     Format = LangReplaceExpression( Format, "%1", Param1 );
     Format = LangReplaceExpression( Format, "%2", Param2 );
     Format = LangReplaceExpression( Format, "%3", Param3 );
-        
+
     return Format;
 }
 
@@ -453,6 +459,7 @@ defaultproperties
 	GetPlayersString="[b]ID - Name - Score - IP[\\b]:"
 	KickBanString="[c=ff00ff][b]%1[\\b] BANNED [b]%2[\\b]!"
 	KickString="[c=ff00ff][b]%1[\\b] kicked [b]%2[\\b]."
+	CampKickString="[c=ff00ff][b]%1[\\b] kicked [b]%2[\\b] for camping %3 times."
 	ModVersionString="[b]Mod Version[\\b]: %1"
 	LatestVersionString="[b]Latest Version[\\b]: %1"
 	ComputerString="[b]Computer[\\b]: %1"
@@ -471,4 +478,9 @@ defaultproperties
 	WAGetTempBansString="Get Temporary Bans"
 	WAMuteString="Force Mute"
 	MaxPlayingClientsString="[c=ffff00]Maximum number of playing clients reached."
+
+	CampWarningString="[c=FFFFFF][b]Anti-Camp[\\b]:[c=ffff00] You are camping! Please move somewhere else.";
+	KillCampString="[c=ff00ff][b]%1[\\b] killed [b]%2[\\b] for camping.";
+	TaserOnlyOnString="[c=ffff00][b]%1[\\b][\\c] [c=00ff00]enabled[\\c] [b]Taser Only[\\b]!";
+	TaserOnlyOffString="[c=ffff00][b]%1[\\b][\\c] [c=ff0000]disabled[\\c] [b]Taser Only[\\b]!\n[b]If you are spawn with taser perform a [u]double switch[\\u].";
 }

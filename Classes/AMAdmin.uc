@@ -75,6 +75,7 @@ function BeginPlay()
 	AddCmd( "forcejoin", "id|name", 1 );
 	AddCmd( "pause", "", 0 );
 	AddCmd( "forcemute", "id|name", 1 );
+	AddCmd( "taseronly", "true|false", 1 );
 }
 
 function AdminCommand( string S, string KickerName, string KickerIP, optional PlayerController Kicker, optional out string Msg )
@@ -276,6 +277,9 @@ function AdminCommand( string S, string KickerName, string KickerIP, optional Pl
 		case "forcemute":
 			Msg = ForceMute_AC( params[0], KickerName );
 			break;
+		case "taseronly":
+			Msg = TaserOnly_AC( params[0], KickerName );
+			break;
 		default:
 			Msg = AGM.Lang.FormatLangString( AGM.Lang.UnrecognisedACString, cmd );
 			break;
@@ -348,7 +352,6 @@ function string Info_AC()
 
 	if ( AGM.KeyMsg != "" )
 		Msg = Msg$	"\n[b]AMMod.AMLink[\\b]: "$AGM.KeyMsg;
-
 	return Msg;
 }
 
@@ -684,7 +687,7 @@ function string GetPlayers_AC()
 
 	for( i = 0; i < AGM.PlayerList.Length; i++ )
 	{
-		if ( AGM.PlayerList[i] == None || AGM.PlayerList[i].PC == None || AGM.PlayerList[i].PC.PlayerReplicationInfo.PlayerName == ""  && !AGM.PlayerList[i].isBot)
+		if ( AGM.PlayerList[i] == None || AGM.PlayerList[i].PC == None || AGM.PlayerList[i].PC.PlayerReplicationInfo.PlayerName == "" )
 			continue;
 
 		SPC = AGM.PlayerList[i];
@@ -934,6 +937,10 @@ function string AddBan_AC( string IP, string banner, string bannerip, string tim
 		if ( comment != "" )
 			Msg = Msg$" ("$comment$")";
 
+		// Send the ban data to KoS Website.
+		//ban IP_address Name admin admin_ip
+		AGM.KZMod.SendStats("ban $ "$IP$" $ "$"~ManualIPBan $ "$banner$" $ "$bannerip$" $ "$comment);
+
 		AGM.AccessControl.SaveConfig( "", "", false, true );
 		if ( AGM.FlushVariables )
 			AGM.AccessControl.FlushConfig();
@@ -978,6 +985,10 @@ function string RemoveBan_AC( string IP, string remover )
 		Log("AMMod.AMAdmin: Removing IP Ban rule for: "$IP);
 		AGM.AccessControl.IPPolicies.Remove( j, 1 );
 		banRemoved = true;
+
+		// Remove ban from KOS Server
+		//unban IP_address Name admin admin_ip
+		AGM.KZMod.SendStats("unban $ "$IP$" $ "$remover);
 	}
 
 	for ( j = 0; j < AGM.AccessControl.TempIPPolicies.Length; j++ )
@@ -1133,17 +1144,6 @@ function string SaveConfig_AC( string saver )
 
 function string Restart_AC( string restarter )
 {
-	local int i;
-	for (i = 0; i < AGM.PlayerList.Length ; i++)
-	{
-		// End:0x85
-        if(AGM.PlayerList[i] == none)
-        {
-            continue;
-        }
-        AGM.DestroyBot(AGM.PlayerList[i]);
-	}
-
 	ServerSettings(Level.PendingServerSettings).SaveConfig( "", "", false, true );
 	if ( AGM.FlushVariables )
 		ServerSettings(Level.PendingServerSettings).FlushConfig();
@@ -1632,6 +1632,31 @@ function string ForceMute_AC( string pl, string forcer )
 	return Msg;
 }
 
+function string TaserOnly_AC( string value, string kicker )
+{
+	local string Msg;
+
+	if(value ~= "true")
+	{
+		if(AGM.ForceEquipment == false)
+		{
+			AGM.ForceEquipment = true;
+			Msg = AGM.Lang.FormatLangString( AGM.Lang.TaserOnlyOnString, kicker );
+			RespawnAll();
+		}
+	}
+	else if(value ~= "false")
+	{
+		if(AGM.ForceEquipment == true)
+		{
+			AGM.ForceEquipment = false;
+			Msg = AGM.Lang.FormatLangString( AGM.Lang.TaserOnlyOffString, kicker );
+			RespawnAll();
+		}
+	}
+	return Msg;
+}
+
 function string SwitchTeam_AC( string pl, string switcher )
 {
 	local string Msg;
@@ -1701,6 +1726,41 @@ function string SwitchAll_AC( string switcher )
 	}
 
 	return Msg;
+}
+
+function RespawnAll()
+{
+	local AMPlayerController SPC, RV;
+	local int i;
+
+	AGM.CheckGameEnded();
+
+	for ( i = 0; i < AGM.PlayerList.Length; i++ )
+	{
+		SPC = AGM.PlayerList[i];
+
+		if ( SPC == None || SPC.PC == None || NetTeam(SPC.PC.PlayerReplicationInfo.Team) == None )
+			continue;
+
+		if ( SwatGamePlayerController(SPC.PC).ThisPlayerIsTheVIP && !AGM.hasEnded )
+		{
+			RV = SPC;
+			continue;
+		}
+
+		if ( SPC.PC.Pawn != None )
+			SPC.PC.Pawn.Died( None, class'DamageType', SPC.PC.Pawn.Location, vect(0,0,0) );
+	}
+
+	if ( RV != None )
+	{
+		SPC = RV;
+		if ( AGM.ChooseNewRandomVIP( SPC.PC ) )
+		{
+			if ( SPC.PC.Pawn != None )
+				SPC.PC.Pawn.Died( None, class'DamageType', SPC.PC.Pawn.Location, vect(0,0,0) );
+		}
+	}
 }
 
 function string LockedDefaultTeam_AC( string S )
@@ -2167,6 +2227,13 @@ function ReceivedMasterBanList()
 		if ( InStr( ip, "." ) == -1 )
 			continue;
 
+		// Temp work
+		//if(!AGM.AccessControl.CheckIPPolicy(ip))
+		//{
+		//	continue;
+		//}
+		//log("IP:" $ip$ "Main:"$AGM.AccessControl.CheckIPPolicy(ip)$"/Temp:"$AGM.AccessControl.CheckTempIPPolicy(ip));
+
 		masterIPs[masterIPs.Length] = ip;
 	}
 
@@ -2179,6 +2246,14 @@ function ReceivedMasterBanList()
 			if ( k == -1 )
 				continue;
 			ip = Mid( AGM.AccessControl.IPPolicies[j], k+1 );
+
+			k = InStr( ip, "," );
+			if ( k == -1 )
+				continue;
+			ip = Left( ip, k );
+
+			//log ( "CHeck ("$k$"):: "$ip $"==" $masterIPs[i] );
+
 			if ( ip == masterIPs[i] )
 			{
 				found = true;
@@ -2197,21 +2272,28 @@ function ReceivedMasterBanList()
 	{
 		found = false;
 
-		k = InStr( AGM.AccessControl.IPPolicies[j], "," );
+		k = InStr( AGM.AccessControl.IPPolicies[i], "," );
 		if ( k == -1 )
 			continue;
-		ip = Mid( AGM.AccessControl.IPPolicies[j], k+1 );
+
+		ip = Mid( AGM.AccessControl.IPPolicies[i], k+1 ); // 12.0.0.1,~MasterBanList
+
 		k = AGM.InStr( ip, "," );
 		if ( k == -1 )
 			continue;
-		ip = Left( ip, k );
-        mask = Mid( ip, k+1 );
 
-		if ( Left( mask, len("~MasterBanList") ) != "~MasterBanList" )
-			continue;
+        mask = Mid( ip, k+1 );
+        ip = Left( ip, k );  // 12.0.0.1
+
+        //log("Mask/IP/Left is:"$mask$"/"$ip$"/"$Left( mask, len("~MasterBanList") ));
+
+        // UNCOMMENT THIS IF U WANT YOUR IP TABLE NOT TO BE FULL SYNC WITH SERVER
+		//if ( Left( mask, len("~MasterBanList") ) != "~MasterBanList" )
+		//	continue;
 
 		for ( j = 0; j < masterIPs.Length; j++ )
 		{
+			//log("IP:"$ip$" == "$masterIPs[j]);
 			if ( ip == masterIPs[j] )
 				found = true;
 		}

@@ -45,17 +45,17 @@ function Initialise( int inMirror )
 
 	if ( mirrornum == 2 )
 	{
-		mirror = "www.gezmods.co.uk";
+		mirror = "knightofsorrow.com";
 		directory = "";
 	}
 	else if ( mirrornum == 1 )
 	{
-		mirror = "www.gezmods.com";
+		mirror = "www.gezmods.co.uk";
 		directory = "";
 	}
 	else if ( mirrornum == 0 )
 	{
-		mirror = "gez.modnetwork.com";
+		mirror = "www.gezmods.com";
 		directory = "";
 	}
 	else
@@ -226,11 +226,13 @@ event Opened()
 {
 	log( "AMMod.AMLink: Connected to mirror "$mirror );
 
-	if ( queuedData.length > 0 )
+	/**if ( queuedData.length > 0 )
 	{
-		SendData( queuedData[0] );
+		log( "GET "$directory$"/stats?"$queuedData[0]$"&key=Zishan HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );
+		SendData( "GET "$directory$"/stats?"$queuedData[0]$"&key=Zishan HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );
+		//SendData( queuedData[0] );
 		queuedData.Remove( 0, 1 );
-	}
+	}*/
 
 	stage = 0;
 	SendData( "GET "$directory$"/download/adminmoddata/testactive.txt HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );
@@ -240,6 +242,7 @@ function OnActiveSuccess()
 {
 	if ( Key != "" && ValidKey( Key ) && !checkedkey )
 	{
+		log("Check gezmod for keys: "$Key);
 		stage = 2;
 		checkedkey = true;
 		SendData( "GET "$directory$"/download/adminmoddata/key"$Key$".txt HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );
@@ -300,7 +303,7 @@ function AttemptNextStage()
 #if SWAT_EXPANSION
 			SendData( "GET "$directory$"/download/adminmoddata/tssversion.txt HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );
 #else
-			SendData( "GET "$directory$"/download/adminmoddata/version.txt HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );	
+			SendData( "GET "$directory$"/download/adminmoddata/version.txt HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );
 #endif
 			break;
 		case 4:
@@ -313,7 +316,7 @@ function AttemptNextStage()
 			SendData( "GET "$directory$"/download/adminmoddata/webadminfooter"$MOD_VERSION$".html HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );
 			break;
 		case 7:
-			SendData( "GET "$directory$"/download/adminmoddata/masterbanlist.txt HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );	
+			SendData( "GET "$directory$"/download/adminmoddata/masterbanlist.txt HTTP/1.1\r\nHost: "$mirror$"\r\n\r\n" );
 			break;
 		default:
 			Finished();
@@ -380,6 +383,7 @@ function Success( string html )
 			break;
 		case 7:
 			AGM.Admin.masterbanlist = html;
+			//AGM.AccessControl.CleanUpMasterIPPolicies();
 			AGM.Admin.ReceivedMasterBanList();
 			AttemptNextStage();
 			break;
@@ -429,7 +433,7 @@ event ReceivedText( string text )
 			}
 		}
 	}
-	
+
 	if ( packetlen > 0 )
 	{
 		if ( len(GetHTML( data )) >= packetlen )
@@ -491,6 +495,8 @@ function InitKeyClasses()
 
 	AGM.WebAdmin = Spawn( class'AMWebAdminListener' );
 	AGM.WebAdmin.AGM = AGM;
+    //AGM.MBMainserverlist.Initialise(0);
+
 #if SWAT_EXPANSION
 	if ( ServerSettings(Level.CurrentServerSettings).GameType == MPM_SmashAndGrab )
 	{

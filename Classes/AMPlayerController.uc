@@ -9,6 +9,38 @@ struct NormalCamperStruct
     var bool DoneInitialWarn;
     var Vector OldLocation;
 };
+
+struct AntiCheatStruct
+{
+    var int TimesNotRecoiled;
+    var Rotator OldRotation;
+    var float Startfiring;
+    var float LastStartfiring;
+    var int StartfiringTimesNotRecoiled;
+    var int lastnumrounds;
+    var bool WeaponWasIdle;
+    var float stopfirestarttime;
+    var int SavedTimesNotRecoiled;
+    var int LastNoRecoilCheck;
+    var int Totalbulletsfired;
+    var int LastNumOfBulletsBeforeStartFiring;
+    var Rotator TasedOldRotation;
+    var float LastTasedTime;
+    var int MovingWhileTasedTimes;
+    var int LongPepperSprayRangeTimes;
+    var int LongTaseRangeTimes;
+    var int LastStungBulletsInGun;
+    var float LastStungTime;
+    var int ShootingWhileStungTimes;
+    var bool DisableTempCheatMovingCheck;
+    var int OldPing;
+    var float LastPingChangeTime;
+    var bool DisableCheatCheckBecausePing;
+    var float LastCheatDetectionOffTimeCheck;
+    var float CheatDectionOffTotal;
+    var int MyBanCode;
+    var bool CanBeBanned;
+};
 //KME
 
 struct Idle
@@ -79,20 +111,9 @@ var Idle idleCheck;
 var bool wasDead;
 var bool IsDead;
 var NormalCamperStruct NormalCamper;
-var bool isBot;
-var bool enemySighted;
-var PlayerController enemyPlayer;
+var int campingtimes;
 var float lastShotFiredTime;
-var AMPlayerController BotMaster;
 var Pawn unpossessedPawn;
-var int numPathNode;
-var float lastPathNodeTime;
-var bool pathNodeReached;
-var array<int> lastNumAlternativePathNodes;
-var array<PathNode> UsedPathNodes;
-var int StartRecordingPathNodes;
-var PathNode PathNodeGoal;
-var int StartPathNodeGoal;
-var AMPlayerController FindPlayer;
 var string PID;
+var AntiCheatStruct AntiCheat;
 //KME

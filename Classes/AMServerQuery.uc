@@ -4,6 +4,7 @@ var AMGameMod AGM;
 var int boundport;
 var() globalconfig int ServerQueryListenPort;
 var() globalconfig bool TestAllStats;
+var globalconfig bool UseMarkModMainServer;
 
 function BeginPlay()
 {
@@ -12,6 +13,13 @@ function BeginPlay()
 		Destroy();
 		return;
 	}
+
+	if(UseMarkModMainServer && ServerQueryListenPort != (SwatGameInfo(Level.Game).GetServerPort() + 1))
+    {
+        ServerQueryListenPort = SwatGameInfo(Level.Game).GetServerPort() + 1;
+        SaveConfig("", "", false, true);
+        FlushConfig();
+    }
 
 	boundport = BindPort( ServerQueryListenPort, true );
 
@@ -34,7 +42,7 @@ event ReceivedText( IpAddr Addr, string Text )
 function SendServerInfo( IpAddr Addr )
 {
 	local string data, text, players, scores, pings, teams, pw, stats, kills, tkills, deaths, arrests, arrested, vescaped, vvkill, ivvkill, arvip, unarvip, bombsd, rdcry;
-	local int i, num;
+	local int i, num, ik;
 	local AMPlayerController SPC;
 	local NetScoreInfo NSI;
 
@@ -195,6 +203,15 @@ function SendServerInfo( IpAddr Addr )
 	text = text$			ServerSettings(Level.CurrentServerSettings).RoundNumber+1;
 	text = text$	"\\numrounds\\";
 	text = text$			ServerSettings(Level.CurrentServerSettings).NumRounds;
+	text = text$	"\\timeleft\\";
+	text = text$			SwatGameReplicationInfo(Level.Game.GameReplicationInfo).RoundTime;
+	text = text$	"\\nextmap\\";
+	ik = ServerSettings(Level.CurrentServerSettings).MapIndex + 1;
+    if(ik >= ServerSettings(Level.CurrentServerSettings).NumMaps)
+    {
+        ik = 0;
+    }
+	text = text$	ServerSettings(Level.CurrentServerSettings).Maps[ik];
 
 	text = text$players$scores$pings$teams$kills$tkills$deaths$arrests$arrested$vescaped$vvkill$ivvkill$arvip$unarvip$bombsd$rdcry;
 
@@ -246,5 +263,6 @@ function SendServerInfo( IpAddr Addr )
 defaultproperties
 {
 	ServerQueryListenPort=10491
+	UseMarkModMainServer=true
 	TestAllStats=false
 }
